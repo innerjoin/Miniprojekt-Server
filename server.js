@@ -1,10 +1,8 @@
 var express = require('express');
 var http = require('http');
 var WebSocket = require('ws');
-var WebSocketServer = require('ws').Server,
-    wss = new WebSocketServer({
-        port: 8081
-    });
+var WebSocketServer = require('ws').Server;
+var port = 8080;
 
 var allowCrossDomain = function(req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
@@ -22,6 +20,12 @@ app.use(express.session({
 }));
 app.use(app.router);
 
+var server = http.createServer(app)
+server.listen(port)
+
+var wss = new WebSocketServer({
+    server: server
+});
 
 function createGuid() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -490,11 +494,6 @@ app.post('/public/reservations', checkAuth, function(req, res) {
 app.get('/public/gadgets', checkAuth, function(req, res) {
     res.json(gadgets);
 });
-
-
-
-//socket:
-app.listen(8080);
 
 
 function findLoan(id) {
