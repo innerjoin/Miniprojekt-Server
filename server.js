@@ -49,7 +49,6 @@ function checkAuth(req, res, next) {
     }
 }
 
-
 wss.broadcast = function(data) {
     for (var i in this.clients)
         this.clients[i].send(data);
@@ -263,9 +262,9 @@ vulnerabilities.push({
 vulnerabilities.push({
 	id: 1014,
 	cid: 204,
-	title": "Microsoft .NET Framework 2.x, 3.x, 4.x Socket Restriction Bypass Vulnerability MS11-069 KB2567951, KB2539631, KB2539633, KB2539634, KB2539635, KB2539636",
+	title: "Microsoft .NET Framework 2.x, 3.x, 4.x Socket Restriction Bypass Vulnerability MS11-069 KB2567951, KB2539631, KB2539633, KB2539634, KB2539635, KB2539636",
 	description: "A vulnerability has been reported in Microsoft .NET Framework, which can\r\nbe exploited by malicious people to bypass certain security restrictions or\r\ngain knowledge of sensitive information.\r\n\r\nThe vulnerability is caused due to an error when validating the trust\r\nlevel within the System.Net.Sockets namespace and can be exploited to\r\nbypass CAS (Code Access Security) restrictions or disclose information via\r\na specially crafted web page viewed using a browser that supports XBAPs (XAML Browser Applications).\r\n\r\nExtended Solution:\r\nAs a workaround, disable XAML browser applications in Internet Explorer.\r\nPlease see the Microsoft security bulletin for details.\r\n\r\nPriority two if internet access is available.\r\nPriority three if NO internet access is available.\r\n\r\nVendor note:\r\nThis security update resolves a privately reported vulnerability in Microsoft .NET Framework. The vulnerability could allow information disclosure if a user views a specially crafted Web page using a Web browser that can run XAML Browser Applications (XBAPs). In a Web-based attack scenario, an attacker could host a Web site that contains a Web page that is used to exploit this vulnerability. In addition, compromised Web sites and Web sites that accept or host user-provided content or advertisements could contain specially crafted content that could exploit this vulnerability. In all cases, however, an attacker would have no way to force users to visit these Web sites. Instead, an attacker would have to convince users to visit the Web site, typically by getting them to click a link in an e-mail message or Instant Messenger message that takes users to the attacker&#x27;s Web site. This vulnerability could also be used by Windows .NET applications to bypass Code Access Security (CAS) restrictions.\r\n\r\nThis security update is rated Moderate for Microsoft .NET Framework 2.0 Service Pack 2, Microsoft .NET Framework 3.5.1, and Microsoft .NET Framework 4 on all supported editions of Microsoft Windows.\r\n\r\nWhat is the difference between .NET Framework 4 and .NET Framework 4 Client Profile? \r\nThe .NET Framework version 4 redistributable packages are available in two profiles: .NET Framework 4 and .NET Framework 4 Client Profile. The .NET Framework 4 Client Profile is a subset of the .NET Framework 4 profile that is optimized for client applications. It provides functionality for most client applications, including Windows Presentation Foundation (WPF), Windows Forms, Windows Communication Foundation (WCF), and ClickOnce features. This enables faster deployment and a smaller install package for applications that target the .NET Framework 4 Client Profile. \r\n\r\n Socket Restriction Bypass Vulnerability - CVE-2011-1978 \r\n\r\nAn information disclosure vulnerability exists in the way that .NET Framework improperly validates the trust level within the System.Net.Sockets namespace. An attacker who successfully exploited this vulnerability would be able to access information not intended to be exposed. Additionally, this vulnerability could be used by an attacker to direct network traffic from a victim&#x27;s system to other network resources the victim can access. This could allow an attacker to perform a denial of service to any system the victim&#x27;s system can access or use the victim&#x27;s system to perform scanning of network resources available to the victim. Note that this vulnerability would not allow an attacker to execute code or to elevate their user rights directly, but it could be used to produce information that could be used to try to further compromise the affected system.\r\n\r\n\r\n Mitigating Factors for Socket Restriction Bypass Vulnerability - CVE-2011-1978 \r\n\r\nMitigation refers to a setting, common configuration, or general best-practice, existing in a default state, that could reduce the severity of exploitation of a vulnerability. The following mitigating factors may be helpful in your situation: \r\n\r\n• In a Web-based attack scenario, an attacker could host a Web site that contains a Web page that is used to exploit this vulnerability. In addition, compromised Web sites and Web sites that accept or host user-provided content or advertisements could contain specially crafted content that could exploit this vulnerability. In all cases, however, an attacker would have no way to force users to visit these Web sites. Instead, an attacker would have to convince users to visit the Web site, typically by getting them to click a link in an e-mail message or Instant Messenger message that takes users to the attacker&#x27;s Web site.\r\n \r\n• By default, Internet Explorer on Windows Server 2003, Windows Server 2008, and Windows Server 2008 R2 runs in a restricted mode that is known as Enhanced Security Configuration. This mode mitigates this vulnerability only on Windows Server 2008 and Windows Server 2008 R2, and only in a Web-based attack scenario. See the FAQ section of this vulnerability for more information about Internet Explorer Enhanced Security Configuration.\r\n \r\n• In a Web-hosting scenario, an attacker must have permission to upload arbitrary ASP.NET pages to a Web site and ASP.NET must be installed on that Web server. In default configuration, an anonymous user cannot upload and run Microsoft .NET code on an Internet Information Server (IIS).\r\n \r\n• Customers who have installed KB2562394 cannot be exploited without user interaction. This update, made available through MS11-044, prevents ClickOnce applications in the Internet zone from executing without prompting the user. Customers who have not installed KB2562394 will not receive a dialog box if the application is not using any more than Internet-only permissions. See KB2562394 for further information on this feature.\r\n\r\n\r\nSystems affected:\r\nMicrosoft .NET Framework 2.x\r\nMicrosoft .NET Framework 3.x\r\nMicrosoft .NET Framework 4.x",
-	publish_date": "2011-08-10T13:21:32Z",
+	publish_date: "2011-08-10T13:21:32Z",
 	cveId: "CVE-2011-1978",
 	nveUrl: "http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2011-1978"
 });
@@ -308,30 +307,10 @@ function adduser(userJson) {
     return true;
 }
 
-function addReservation(reservationJson) {
-    console.log("addReservation");
-    if (filterReservationsPeruser(reservationJson.userId).length >= maxReservations) {
-        return false;
-    }
-
-    if (!isReservedBy(reservationJson.userId, reservationJson.gadgetId)) {
-        reservations.push(reservationJson);
-        wss.broadcast(JSON.stringify({
-            target: 'reservation',
-            type: 'add',
-            data: JSON.stringify(reservationJson)
-        }));
-        return true;
-    }
-    return false;
-}
-
 app.post('/users', function(req, res) {
-    console.log('users');
-
-    var userJson = JSON.parse(req.body.value);
+	var userJson = req.body;
     users.push(userJson);
-    wss.broadcast(JSON.stringify({
+	wss.broadcast(JSON.stringify({
         target: 'user',
         type: 'add',
         data: JSON.stringify(userJson)
@@ -343,54 +322,81 @@ app.get('/users', function(req, res) {
     res.json(users);
 })
 
-
-
-function filterLoansPeruser(id) {
-    return loans.filter(function(ele) {
-        return ele.userId == id && ele.returnDate == null;
-    });
-}
-
-function filterReservationsPeruser(id) {
-    return reservations.filter(function(ele) {
-        return ele.userId == id && !ele.finished;
-    });
-}
-
-function sortReservationArrayPerDate(a, b) {
-    return new Date(a.pickupDate).getTime() - new Date(b.pickupDate).getTime();
-}
-
-function getWaitingPositionOfReservation(reservation) {
-    var sortedReservation = reservations.filter(function(ele) {
-        return ele.gadgetId == reservation.gadgetId && !ele.finished;
-    }).sort(sortReservationArrayPerDate);
-    var realReservation = getReservationBy(reservation.userId, reservation.gadgetId);
-
-    return sortedReservation.indexOf(realReservation);
-}
-
-
-app.post('/gadgets', function(req, res) {
-    console.log('gadgets');
-
-    var gadgetsJson = JSON.parse(req.body.value);
-    gadgets.push(gadgetsJson);
+app.post('/projects', function(req, res) {
+    var projectsJson = req.body;
+    projects.push(projectsJson);
     wss.broadcast(JSON.stringify({
-        target: 'gadget',
+        target: 'project',
         type: 'add',
-        data: JSON.stringify(gadgetsJson)
+        data: JSON.stringify(projectsJson)
+    }));
+    res.json(true);
+});
+
+app.get('/projects', function(req, res) {
+    res.json(projects);
+});
+
+app.post('/components', function(req, res) {
+    var componentsJson = req.body;
+    components.push(componentsJson);
+    wss.broadcast(JSON.stringify({
+        target: 'component',
+        type: 'add',
+        data: JSON.stringify(componentsJson)
     }));
 
     res.json(true);
 });
 
-
-
-app.get('/gadgets', function(req, res) {
-    res.json(gadgets);
+app.get('/components', function(req, res) {
+    res.json(components);
 });
 
+app.get('/projects/:id/components', function(req, res) {
+	var pid = req.params.id;
+	var cids = [];
+	for(var i = 0; i < project_components.length; i++) {
+		if(project_components[i].pid == pid)
+			cids.push(project_components[i].cid);
+	}
+	var data = [];
+	for(var i = 0; i < components.length; i++) {
+		if(cids.indexOf(components[i].id) >= 0)
+			data.push(components[i]);
+	}
+	res.json(data);
+});
+
+app.post('/vulnerabilities', function(req, res) {
+    var vulnerabilitiesJson = req.body;
+    vulnerabilities.push(vulnerabilitiesJson);
+    wss.broadcast(JSON.stringify({
+        target: 'vulnerability',
+        type: 'add',
+        data: JSON.stringify(vulnerabilitiesJson)
+    }));
+    res.json(true);
+});
+
+app.get('/vulnerabilities', function(req, res) {
+    res.json(vulnerabilities);
+});
+
+app.get('/components/:id/vulnerabilities', function(req, res) {
+	var cid = req.params.id;
+	var data = [];
+	for(var i = 0; i < vulnerabilities.length; i++) {
+		console.log(vulnerabilities[i].cid, "<-->", cid);
+		if(vulnerabilities[i].cid == cid)
+			data.push(vulnerabilities[i]);
+	}
+	res.json(data);
+});
+/////////////////////////////////////////
+/////////////////////////////////////////
+/////////////////////////////////////////
+/////////////////////////////////////////
 app.post('/gadgets/:id', function(req, res) {
     console.log('gadgets/id');
     var gadgedJson = JSON.parse(req.body.value);
