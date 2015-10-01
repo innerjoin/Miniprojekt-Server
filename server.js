@@ -353,6 +353,22 @@ app.get('/components', function(req, res) {
     res.json(components);
 });
 
+app.post('/project_components', function(req, res) {
+    var p_cJson = req.body;
+	project_components.push(p_cJson);
+    wss.broadcast(JSON.stringify({
+        target: 'project_component',
+        type: 'add',
+        data: JSON.stringify(p_cJson)
+    }));
+
+    res.json(true);
+});
+
+app.get('/project_components', function(req, res) {
+    res.json(project_components);
+});
+
 app.get('/projects/:id/components', function(req, res) {
 	var pid = req.params.id;
 	var cids = [];
@@ -387,12 +403,78 @@ app.get('/components/:id/vulnerabilities', function(req, res) {
 	var cid = req.params.id;
 	var data = [];
 	for(var i = 0; i < vulnerabilities.length; i++) {
-		console.log(vulnerabilities[i].cid, "<-->", cid);
 		if(vulnerabilities[i].cid == cid)
 			data.push(vulnerabilities[i]);
 	}
 	res.json(data);
 });
+
+app.get('/vulnerability_states', function(req, res) {
+    res.json(vulnerability_states);
+});
+
+app.get('/vulnerability_states/projects/:pid/components/:cid/vulnerabilities/:vid', function(req, res) {
+	var pid = req.params.pid;
+	var cid = req.params.cid;
+	var vid = req.params.vid;
+	var result = false;
+	for(var i = 0; i < vulnerability_states.length; i++) {
+		if(pid == vulnerability_states[i].pid &&
+				cid == vulnerability_states[i].cid &&
+				vid == vulnerability_states[i].vid) 
+			result = vulnerability_states[i];
+	}
+	res.json(result);
+});
+
+app.post('/vulnerability_states', function(req, res) {
+	var data = req.body;
+	var exists = false;
+	var result = false;
+	if(data != null) {
+		for(var i = 0; i < vulnerability_states.length; i++) {
+			if(data.pid == vulnerability_states[i].pid &&
+					data.cid == vulnerability_states[i].cid &&
+					data.vid == vulnerability_states[i].vid) {
+				exists = true;
+				// update state
+				if(validateState(data.state) != null) {
+					vulnerability_states[i].state = validateState(data.state);
+					wss.broadcast(JSON.stringify({
+						target: 'vulnerability_states',
+						type: 'update',
+						data: JSON.stringify(vulnerability_states[i])
+					}));
+					result = true;
+				} 
+				break;
+			}
+		}
+	}
+	if(!exists && data != null && data.pid != null 
+			&& data.cid != null && data.vid != null 
+			&& validateState(data.state) != null) {
+		data.state = validateState(data.state);
+		vulnerability_states.push(data);
+		wss.broadcast(JSON.stringify({
+			target: 'vulnerability_states',
+			type: 'add',
+			data: JSON.stringify(data)
+		}));
+		result = true;
+	}
+	res.json(result);
+});
+
+function validateState(state) {
+	switch(state.toLowerCase()) {
+		case "unhandled": 	return "unhandled";
+		case "inprogress": 	return "inProgress";
+		case "fixed": 		return "fixed";
+		case "wontfix": 	return "wontFix";
+	}
+	return null;	
+}
 /////////////////////////////////////////
 /////////////////////////////////////////
 /////////////////////////////////////////
