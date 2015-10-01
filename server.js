@@ -36,17 +36,23 @@ function createGuid() {
 }
 
 function checkAuth(req, res, next) {
-
-    console.log(req.body.token);
-
-    var securityToken = JSON.parse(req.body.token);
-    var iduser = securityToken.userId;
-
-    if (tokens[iduser].securityToken == securityToken.securityToken) {
-        next();
-    } else {
-        res.send('You are not authorized!');
-    }
+	
+	console.log("check auth: ", req.body.token, req.body);
+	var token = req.get("token");
+	var user = req.get("user");
+	console.log("token: ", token);
+	console.log("user: ", user);
+	console.log("tokens: ", tokens);
+    if(typeof(token) !== 'undefined' && 
+			typeof(user) !== 'undefined' &&
+			typeof(tokens[user]) !== 'undefined' && 
+			tokens[user].securityToken == token) {
+		console.log("next()");
+		next();
+	} else {
+		res.status(401);
+		res.send('You are not authorized!');
+	}
 }
 
 wss.broadcast = function(data) {
@@ -54,8 +60,6 @@ wss.broadcast = function(data) {
         this.clients[i].send(data);
 };
 
-//var maxReservations = 3;
-/************* sample data [start] *********************/
 var users = [];
 var projects = [];
 var components = [];
@@ -64,6 +68,7 @@ var vulnerabilities = [];
 var vulnerability_states = [];
 var tokens = {};
 
+/************* sample data [start] *********************/
 users.push({
     name: 'Lukas',
     password: "12345",
@@ -293,7 +298,9 @@ vulnerability_states.push({
 	vid: 1001,
 	state: "inProgress"
 });
+/************* sample data [end] *********************/
 
+/************* helpers [start] *********************/
 function adduser(userJson) {
     if (finduserByEmail(userJson.email)) {
         return false;
@@ -307,7 +314,71 @@ function adduser(userJson) {
     return true;
 }
 
-app.post('/users', function(req, res) {
+function finduserByEmail(email) {
+    for (var index = 0; index < users.length; ++index) {
+        var item = users[index];
+        if (item.email == email) {
+            return item;
+        }
+    }
+    return null;
+}
+
+function validateState(state) {
+	switch(state.toLowerCase()) {
+		case "unhandled": 	return "unhandled";
+		case "inprogress": 	return "inProgress";
+		case "fixed": 		return "fixed";
+		case "wontfix": 	return "wontFix";
+	}
+	return null;	
+}
+/************* helpers [end] *********************/
+
+/************* routes [start] *********************/
+
+app.post('/public/register', function(req, res) {
+    console.log('/public/register');
+    var name = req.body.name;
+    var mail = req.body.email;
+    var password = req.body.password;
+    var userIdentifier = req.body.userIdentifier;
+    var newStudent = {
+        name: name,
+        password: password,
+        email: mail,
+        userIdentifier: userIdentifier
+    };
+
+    res.json(adduser(JSON.parse(JSON.stringify(newStudent))));
+});
+
+app.post('/public/login', function(req, res) {
+    console.log('/public/login');
+    var pwd = req.body.password;
+    var mail = req.body.email;
+
+    var item = finduserByEmail(mail);
+    if (item != null) {
+        if (item.password == pwd) {
+            if (!tokens[item.userIdentifier]) {
+                var token = createGuid();
+                tokens[item.userIdentifier] = {
+                    userId: item.userIdentifier,
+                    securityToken: token
+                };
+            }
+            res.json(tokens[item.userIdentifier]);
+        } else {
+            res.json("incorrect password");
+        }
+    } else {
+        res.json("user does not exist");
+    }
+});
+
+app.post('/users', checkAuth, function(req, res) {
+	console.log("/users");
 	var userJson = req.body;
     users.push(userJson);
 	wss.broadcast(JSON.stringify({
@@ -318,11 +389,11 @@ app.post('/users', function(req, res) {
     res.json(true);
 });
 
-app.get('/users', function(req, res) {
+app.get('/users', checkAuth, function(req, res) {
     res.json(users);
 })
 
-app.post('/projects', function(req, res) {
+app.post('/projects', checkAuth, function(req, res) {
     var projectsJson = req.body;
     projects.push(projectsJson);
     wss.broadcast(JSON.stringify({
@@ -333,11 +404,11 @@ app.post('/projects', function(req, res) {
     res.json(true);
 });
 
-app.get('/projects', function(req, res) {
+app.get('/projects', checkAuth, function(req, res) {
     res.json(projects);
 });
 
-app.post('/components', function(req, res) {
+app.post('/components', checkAuth, function(req, res) {
     var componentsJson = req.body;
     components.push(componentsJson);
     wss.broadcast(JSON.stringify({
@@ -349,11 +420,11 @@ app.post('/components', function(req, res) {
     res.json(true);
 });
 
-app.get('/components', function(req, res) {
+app.get('/components', checkAuth, function(req, res) {
     res.json(components);
 });
 
-app.post('/project_components', function(req, res) {
+app.post('/project_components', checkAuth, function(req, res) {
     var p_cJson = req.body;
 	project_components.push(p_cJson);
     wss.broadcast(JSON.stringify({
@@ -365,11 +436,11 @@ app.post('/project_components', function(req, res) {
     res.json(true);
 });
 
-app.get('/project_components', function(req, res) {
+app.get('/project_components', checkAuth, function(req, res) {
     res.json(project_components);
 });
 
-app.get('/projects/:id/components', function(req, res) {
+app.get('/projects/:id/components', checkAuth, function(req, res) {
 	var pid = req.params.id;
 	var cids = [];
 	for(var i = 0; i < project_components.length; i++) {
@@ -384,7 +455,7 @@ app.get('/projects/:id/components', function(req, res) {
 	res.json(data);
 });
 
-app.post('/vulnerabilities', function(req, res) {
+app.post('/vulnerabilities', checkAuth, function(req, res) {
     var vulnerabilitiesJson = req.body;
     vulnerabilities.push(vulnerabilitiesJson);
     wss.broadcast(JSON.stringify({
@@ -395,11 +466,11 @@ app.post('/vulnerabilities', function(req, res) {
     res.json(true);
 });
 
-app.get('/vulnerabilities', function(req, res) {
+app.get('/vulnerabilities', checkAuth, function(req, res) {
     res.json(vulnerabilities);
 });
 
-app.get('/components/:id/vulnerabilities', function(req, res) {
+app.get('/components/:id/vulnerabilities', checkAuth, function(req, res) {
 	var cid = req.params.id;
 	var data = [];
 	for(var i = 0; i < vulnerabilities.length; i++) {
@@ -409,11 +480,11 @@ app.get('/components/:id/vulnerabilities', function(req, res) {
 	res.json(data);
 });
 
-app.get('/vulnerability_states', function(req, res) {
+app.get('/vulnerability_states', checkAuth, function(req, res) {
     res.json(vulnerability_states);
 });
 
-app.get('/vulnerability_states/projects/:pid/components/:cid/vulnerabilities/:vid', function(req, res) {
+app.get('/vulnerability_states/projects/:pid/components/:cid/vulnerabilities/:vid', checkAuth, function(req, res) {
 	var pid = req.params.pid;
 	var cid = req.params.cid;
 	var vid = req.params.vid;
@@ -427,7 +498,7 @@ app.get('/vulnerability_states/projects/:pid/components/:cid/vulnerabilities/:vi
 	res.json(result);
 });
 
-app.post('/vulnerability_states', function(req, res) {
+app.post('/vulnerability_states', checkAuth, function(req, res) {
 	var data = req.body;
 	var exists = false;
 	var result = false;
@@ -465,329 +536,4 @@ app.post('/vulnerability_states', function(req, res) {
 	}
 	res.json(result);
 });
-
-function validateState(state) {
-	switch(state.toLowerCase()) {
-		case "unhandled": 	return "unhandled";
-		case "inprogress": 	return "inProgress";
-		case "fixed": 		return "fixed";
-		case "wontfix": 	return "wontFix";
-	}
-	return null;	
-}
-/////////////////////////////////////////
-/////////////////////////////////////////
-/////////////////////////////////////////
-/////////////////////////////////////////
-app.post('/gadgets/:id', function(req, res) {
-    console.log('gadgets/id');
-    var gadgedJson = JSON.parse(req.body.value);
-    var item = findGadget(req.params.id);
-    if (item != null) {
-        merge(gadgedJson, item);
-        wss.broadcast(JSON.stringify({
-            target: 'gadget',
-            type: 'update',
-            data: JSON.stringify(item)
-        }));
-        res.json(JSON.stringify());
-    } else {
-        res.json(false);
-    }
-});
-
-
-
-app.post('/loans', function(req, res) {
-    console.log('loans');
-
-    var loanJson = JSON.parse(req.body.value);
-    loans.push(loanJson);
-    wss.broadcast(JSON.stringify({
-        target: 'loan',
-        type: 'add',
-        data: JSON.stringify(loanJson)
-    }));
-
-    res.json(true);
-});
-
-
-app.get('/loans', function(req, res) {
-    res.json(loans);
-});
-
-
-app.post('/loans/:id', function(req, res) {
-    console.log('loans/id');
-    var gadgedJson = JSON.parse(req.body.value);
-    var item = findLoan(req.params.id);
-    if (item != null) {
-        merge(gadgedJson, item);
-        wss.broadcast(JSON.stringify({
-            target: 'loan',
-            type: 'update',
-            data: JSON.stringify(item)
-        }));
-        res.json(JSON.stringify(item));
-    } else {
-        res.json(false);
-    }
-});
-
-
-
-app.post('/reservations', function(req, res) {
-    console.log('reservations');
-    var reservationJson = JSON.parse(req.body.value);
-    res.json(addReservation(reservationJson));
-});
-
-
-app.get('/reservations', function(req, res) {
-    res.json(reservations);
-});
-
-
-app.post('/reservations/:id', function(req, res) {
-    console.log('reservationJson/id');
-    var reservationJson = JSON.parse(req.body.value);
-    var item = findReservation(req.params.id);
-
-    if (item != null) {
-        merge(reservationJson, item);
-        wss.broadcast(JSON.stringify({
-            target: 'reservation',
-            type: 'update',
-            data: JSON.stringify(item)
-        }));
-        res.json(JSON.stringify(item));
-    } else {
-        res.json(false);
-    }
-});
-
-
-
-app.post('/public/register', function(req, res) {
-    console.log('/public/register');
-    var name = req.body.name;
-    var mail = req.body.email;
-    var password = req.body.password;
-    var userIdentifier = req.body.userIdentifier;
-    var newStudent = {
-        name: name,
-        password: password,
-        email: mail,
-        userIdentifier: userIdentifier
-    };
-
-    res.json(adduser(JSON.parse(JSON.stringify(newStudent))));
-});
-
-app.post('/public/login', function(req, res) {
-    console.log('/public/login');
-
-    var pwd = req.body.password;
-    var mail = req.body.email;
-
-    var item = finduserByEmail(mail);
-    if (item != null) {
-        if (item.password == pwd) {
-            if (!tokens[item.userIdentifier]) {
-                var token = createGuid();
-                tokens[item.userIdentifier] = {
-                    userId: item.userIdentifier,
-                    securityToken: token
-                };
-            }
-            res.json(tokens[item.userIdentifier]);
-        } else {
-            res.json("incorrect password");
-        }
-    } else {
-        res.json("user does not exist");
-    }
-});
-
-
-app.get('/public/reservations', checkAuth, function(req, res) {
-    console.log('/public/reservation');
-    var securityToken = JSON.parse(req.body.token);
-    var iduser = securityToken.userId;
-    var result = JSON.parse(JSON.stringify(filterReservationsPeruser(iduser)));
-
-
-
-    result.forEach(function(entry) {
-        entry.gadget = findGadget(entry.gadgetId);
-        entry.watingPosition = getWaitingPositionOfReservation(entry);
-        entry.isReady = !isLent(entry.gadgetId) && entry.watingPosition == 0;
-
-        console.log(entry.watingPosition);
-        delete entry["gadgetId"];
-        delete entry["userId"];
-    });
-
-    res.json(result);
-});
-
-
-app.post('/public/logout', checkAuth, function(req, res) {
-    console.log('/public/logout');
-
-    var securityToken = JSON.parse(req.body.token);
-    var iduser = securityToken.userId;
-
-    if (tokens[iduser]) {
-        delete tokens[iduser]
-        return res.json(true);
-    } else {
-        return res.json(false);
-    }
-});
-
-
-
-app.get('/public/loans', checkAuth, function(req, res) {
-    console.log('/public/loans');
-    var securityToken = JSON.parse(req.body.token);
-    var iduser = securityToken.userId;
-    var result = JSON.parse(JSON.stringify(filterLoansPeruser(iduser)));
-
-    result.forEach(function(entry) {
-        entry.gadget = findGadget(entry.gadgetId);
-        delete entry["gadgetId"];
-        delete entry["userId"];
-    });
-
-    res.json(result);
-});
-
-
-
-
-app.del('/public/reservations', checkAuth, function(req, res) {
-    console.log('delete /public/reservations');
-    var securityToken = JSON.parse(req.body.token);
-    var iduser = securityToken.userId;
-    var reservation = findReservation(req.body.id);
-
-    if (reservation) {
-        reservation.finished = true;
-        wss.broadcast(JSON.stringify({
-            target: 'reservation',
-            type: 'update',
-            data: JSON.stringify(reservation)
-        }));
-        res.json(true);
-    } else {
-        res.json(false);
-    }
-});
-
-
-app.post('/public/reservations', checkAuth, function(req, res) {
-    console.log('/public/reservation');
-    var securityToken = JSON.parse(req.body.token);
-    var gadgetId = req.body.gadgetId;
-    var iduser = securityToken.userId;
-
-    var reservation = {
-        id: createGuid(),
-        gadgetId: gadgetId,
-        userId: iduser,
-        reservationDate: new Date().toJSON(),
-        finished: false
-    };
-    res.json(addReservation(JSON.parse(JSON.stringify(reservation))));
-
-});
-
-
-app.get('/public/gadgets', checkAuth, function(req, res) {
-    res.json(gadgets);
-});
-
-
-function findLoan(id) {
-    for (var index = 0; index < loans.length; ++index) {
-        var item = loans[index];
-        if (item.id === id) {
-            return item;
-        }
-    }
-    return null;
-}
-
-function isLent(gadgetId) {
-    return getLoanBy(gadgetId) != null;
-}
-
-
-function isReservedBy(userId, gadgetId) {
-    return getReservationBy(userId, gadgetId) != null;
-}
-
-
-function getReservationBy(userId, gadgetId) {
-    for (var index = 0; index < reservations.length; ++index) {
-        var item = reservations[index];
-        if (item.userId == userId && item.gadgetId == gadgetId && !item.finished) {
-            return item;
-        }
-    }
-    return null;
-}
-
-
-function getLoanBy(gadgetId) {
-    console.log(gadgetId);
-    for (var index = 0; index < loans.length; ++index) {
-        var item = loans[index];
-        console.log(item);
-        if (item.gadgetId == gadgetId && item.returnDate == null) {
-            return item;
-        }
-    }
-    return null;
-}
-
-
-
-function findReservation(id) {
-    for (var index = 0; index < reservations.length; ++index) {
-        var item = reservations[index];
-        if (item.id === id) {
-            return item;
-        }
-    }
-    return null;
-}
-
-
-function findGadget(inventoryNumber) {
-    for (var index = 0; index < gadgets.length; ++index) {
-        var item = gadgets[index];
-        if (item.inventoryNumber === inventoryNumber) {
-            return item;
-        }
-    }
-    return null;
-}
-
-function finduserByEmail(email) {
-    for (var index = 0; index < users.length; ++index) {
-        var item = users[index];
-        if (item.email == email) {
-            return item;
-        }
-    }
-    return null;
-}
-
-function merge(source, target) {
-    for (var attrname in source) {
-        target[attrname] = source[attrname];
-    }
-}
+/************* routes [end] *********************/
