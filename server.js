@@ -20,8 +20,8 @@ app.use(express.session({
 }));
 app.use(app.router);
 
-var server = http.createServer(app)
-server.listen(port)
+var server = http.createServer(app);
+server.listen(process.env.PORT || port);
 
 var wss = new WebSocketServer({
     server: server
