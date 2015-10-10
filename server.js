@@ -397,6 +397,7 @@ app.post('/public/login', function(req, res) {
             res.json({message: "wrong credentials supplied"});
         }
     } else {
+		res.status(401);
         res.json({message: "wrong credentials supplied"});
     }
 });
