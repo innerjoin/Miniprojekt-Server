@@ -333,6 +333,22 @@ function validateState(state) {
 	}
 	return null;	
 }
+
+function getNewUserIdentifier() {
+	var ids = [];
+    for (var index = 0; index < users.length; ++index) {
+        var item = users[index];
+        var id = parseInt(item.userIdentifier);
+		if(!isNaN(id)) {
+			ids.push(id);
+		}
+    }
+	ids.sort(function (a, b) { 
+		return a - b;
+	});
+	var newId = ids.pop() + 1;
+    return newId.toString();	
+}
 /************* helpers [end] *********************/
 
 /************* routes [start] *********************/
@@ -342,15 +358,22 @@ app.post('/public/register', function(req, res) {
     var name = req.body.name;
     var mail = req.body.email;
     var password = req.body.password;
-    var userIdentifier = req.body.userIdentifier;
-    var newStudent = {
-        name: name,
-        password: password,
-        email: mail,
-        userIdentifier: userIdentifier
-    };
+	
+	var userExists = finduserByEmail(mail);
+	if(userExists == null) {
+		//var userIdentifier = req.body.userIdentifier;
+		var userIdentifier = getNewUserIdentifier();
+		var newUser = {
+			name: name,
+			password: password,
+			email: mail,
+			userIdentifier: userIdentifier
+		};
 
-    res.json(adduser(JSON.parse(JSON.stringify(newStudent))));
+		res.json(adduser(JSON.parse(JSON.stringify(newUser))));
+	} else {
+		res.json("user already exists");
+	}
 });
 
 app.post('/public/login', function(req, res) {
