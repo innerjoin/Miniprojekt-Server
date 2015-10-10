@@ -393,10 +393,11 @@ app.post('/public/login', function(req, res) {
             }
             res.json(tokens[item.userIdentifier]);
         } else {
-            res.json("incorrect password");
+			res.status(401);
+            res.json({message: "wrong credentials supplied"});
         }
     } else {
-        res.json("user does not exist");
+        res.json({message: "wrong credentials supplied"});
     }
 });
 
