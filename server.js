@@ -509,6 +509,63 @@ app.get('/vulnerability_states', checkAuth, function(req, res) {
     res.json(vulnerability_states);
 });
 
+app.get('/projects/:pid/components/:cid/vulnerabilities', checkAuth, function(req, res) {
+	var pid = req.params.pid;
+	var cid = req.params.cid;
+	var results = [];
+	for(var j = 0; j < vulnerabilities.length; j++) {
+		if(vulnerabilities[j].cid == cid) {
+			var vulData = false;
+			for(var i = 0; i < vulnerability_states.length; i++) {
+				if(vulnerability_states[i].pid == pid &&
+						vulnerability_states[i].vid == vulnerabilities[j].id &&
+						vulnerability_states[i].cid == cid) {
+					vulData = {};
+					vulData.state = vulnerability_states[i].state;
+				}
+			}
+			if(vulData == false) {
+				vulData = {};
+				vulData.state = "unhandled";
+			} 
+			vulData.id = vulnerabilities[j].id;
+			vulData.cveId = vulnerabilities[j].cveId;
+			vulData.title = vulnerabilities[j].title;
+			results.push(vulData);
+		}
+	}
+	res.json(results);
+});
+
+app.get('/projects/:pid/components/:cid/vulnerabilities/:vid', checkAuth, function(req, res) {
+	var pid = req.params.pid;
+	var cid = req.params.cid;	
+	var vid = req.params.vid;
+	var vulData = false;
+	for(var j = 0; j < vulnerabilities.length; j++) {
+		if(vulnerabilities[j].cid == cid &&
+				vulnerabilities[j].id == vid) {
+			for(var i = 0; i < vulnerability_states.length; i++) {
+				if(vulnerability_states[i].pid == pid &&
+						vulnerability_states[i].vid == vulnerabilities[j].id &&
+						vulnerability_states[i].cid == cid) {
+					vulData = vulnerabilities[j];
+					vulData.pid = pid;
+					vulData.state = vulnerability_states[i].state;
+					res.json(vulData);
+				}
+			}
+			if(vulData == false) {
+				vulData = vulnerabilities[j];
+				vulData.pid = pid;
+				vulData.state = "unhandled";
+				res.json(vulData);
+			} 
+		}
+	}
+	res.json(vulData);
+});
+
 app.get('/vulnerability_states/projects/:pid/components/:cid/vulnerabilities/:vid', checkAuth, function(req, res) {
 	var pid = req.params.pid;
 	var cid = req.params.cid;
