@@ -361,6 +361,27 @@ function getProjectIdentifier() {
 	var newId = ids.pop() + 1;
     return newId;	
 }
+
+function removeProjectComponentEntry(pid, cid) {
+	var found = false;
+	for(var i = project_components.length; i > 0; i--) {
+		if(project_components[i-1].pid == pid && 
+				(cid === "all" || project_components[i-1].cid == cid)) {
+			project_components.splice(i-1, 1);
+			found = true;
+		} 
+	}
+	
+	if(found) {
+		for(var i = vulnerability_states.length; i > 0; i--) {
+			if(vulnerability_states[i-1].pid == pid && 
+					(cid === "all" || vulnerability_states[i-1].cid == cid)) {
+				vulnerability_states.splice(i-1, 1);
+			} 
+		}
+	}
+	return found;
+}
 /************* helpers [end] *********************/
 
 /************* routes [start] *********************/
@@ -457,6 +478,12 @@ app.get('/projects', checkAuth, function(req, res) {
     res.json(myProjects);
 });
 
+app.del('/projects/:pid', checkAuth, function(req, res) {
+    var pid = req.params.pid;
+	var found = removeProjectComponentEntry(pid, "all");
+    res.json(found);
+});
+
 app.post('/components', checkAuth, function(req, res) {
     var componentsJson = req.body;
     components.push(componentsJson);
@@ -502,24 +529,7 @@ app.post('/project_components/project/:pid/component/:cid', checkAuth, function(
 app.del('/project_components/project/:pid/component/:cid', checkAuth, function(req, res) {
     var pid = req.params.pid;
 	var cid = req.params.cid;
-	var found = false;
-	for(var i = 0; i < project_components.length; i++) {
-		if(project_components[i].pid == pid && 
-				project_components[i].cid == cid) {
-			project_components.splice(i, 1);
-			found = true;
-		} 
-	}
-	
-	if(found) {
-		for(var i = 0; i < vulnerability_states.length; i++) {
-			if(vulnerability_states[i].pid == pid && 
-					vulnerability_states[i].cid == cid) {
-				vulnerability_states.splice(i, 1);
-			} 
-		}
-	}
-
+	var found = removeProjectComponentEntry(pid, cid);
     res.json(found);
 });
 
