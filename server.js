@@ -349,6 +349,18 @@ function getNewUserIdentifier() {
 	var newId = ids.pop() + 1;
     return newId.toString();	
 }
+
+function getProjectIdentifier() {
+	var ids = [];
+    for (var index = 0; index < projects.length; ++index) {
+        ids.push(projects[index].id);
+    }
+	ids.sort(function (a, b) { 
+		return a - b;
+	});
+	var newId = ids.pop() + 1;
+    return newId;	
+}
 /************* helpers [end] *********************/
 
 /************* routes [start] *********************/
@@ -419,18 +431,30 @@ app.get('/users', checkAuth, function(req, res) {
 })
 
 app.post('/projects', checkAuth, function(req, res) {
-    var projectsJson = req.body;
-    projects.push(projectsJson);
+    var prjName = req.body.name;
+	var pl = req.get("user");
+	var newProject = {
+		id: getProjectIdentifier(),
+		name: prjName,
+		pl: pl
+	};
+    projects.push(newProject);
     wss.broadcast(JSON.stringify({
         target: 'project',
         type: 'add',
-        data: JSON.stringify(projectsJson)
+        data: JSON.stringify(newProject)
     }));
-    res.json(true);
+    res.json(newProject);
 });
 
 app.get('/projects', checkAuth, function(req, res) {
-    res.json(projects);
+	var pl = req.get("user");
+	var myProjects = [];
+	for(var i = 0; i < projects.length; i++) {
+		if(projects[i].pl == pl)
+			myProjects.push(projects[i]);
+	}
+    res.json(myProjects);
 });
 
 app.post('/components', checkAuth, function(req, res) {
@@ -449,16 +473,54 @@ app.get('/components', checkAuth, function(req, res) {
     res.json(components);
 });
 
-app.post('/project_components', checkAuth, function(req, res) {
-    var p_cJson = req.body;
-	project_components.push(p_cJson);
+app.post('/project_components/project/:pid/component/:cid', checkAuth, function(req, res) {
+    var s_pid = req.params.pid;
+	var s_cid = req.params.cid;
+	var pid = parseInt(s_pid);
+	var cid = parseInt(s_cid);
+	var found = false;
+	for(var i = 0; i < project_components.length; i++) {
+		if(project_components[i].pid == pid && 
+				project_components[i].cid == cid) {
+			found = true;
+		} 
+	}
+	
+	if(!found){
+		var data = {pid: pid, cid: cid};
+		project_components.push(data);
+	}
     wss.broadcast(JSON.stringify({
         target: 'project_component',
         type: 'add',
-        data: JSON.stringify(p_cJson)
+        data: JSON.stringify(data)
     }));
 
     res.json(true);
+});
+
+app.del('/project_components/project/:pid/component/:cid', checkAuth, function(req, res) {
+    var pid = req.params.pid;
+	var cid = req.params.cid;
+	var found = false;
+	for(var i = 0; i < project_components.length; i++) {
+		if(project_components[i].pid == pid && 
+				project_components[i].cid == cid) {
+			project_components.splice(i, 1);
+			found = true;
+		} 
+	}
+	
+	if(found) {
+		for(var i = 0; i < vulnerability_states.length; i++) {
+			if(vulnerability_states[i].pid == pid && 
+					vulnerability_states[i].cid == cid) {
+				vulnerability_states.splice(i, 1);
+			} 
+		}
+	}
+
+    res.json(found);
 });
 
 app.get('/project_components', checkAuth, function(req, res) {
