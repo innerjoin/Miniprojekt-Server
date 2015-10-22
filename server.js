@@ -480,7 +480,14 @@ app.get('/projects', checkAuth, function(req, res) {
 
 app.del('/projects/:pid', checkAuth, function(req, res) {
     var pid = req.params.pid;
-	var found = removeProjectComponentEntry(pid, "all");
+	var found = false;
+	removeProjectComponentEntry(pid, "all");
+	for(var i = projects.length; i > 0; i--) {
+		if(projects[i-1].pid == pid) {
+			projects.splice(i-1, 1);
+			found = true;
+		}
+	}
     res.json(found);
 });
 
