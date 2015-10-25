@@ -478,7 +478,7 @@ app.get('/projects', checkAuth, function(req, res) {
     res.json(myProjects);
 });
 
-app.del('/projects/:pid', checkAuth, function(req, res) {
+app.get('/projects/:pid/del', checkAuth, function(req, res) {
     var pid = req.params.pid;
 	var found = false;
 	removeProjectComponentEntry(pid, "all");
@@ -533,7 +533,7 @@ app.post('/project_components/project/:pid/component/:cid', checkAuth, function(
     res.json(true);
 });
 
-app.del('/project_components/project/:pid/component/:cid', checkAuth, function(req, res) {
+app.get('/project_components/project/:pid/component/:cid/del', checkAuth, function(req, res) {
     var pid = req.params.pid;
 	var cid = req.params.cid;
 	var found = removeProjectComponentEntry(pid, cid);
@@ -554,6 +554,21 @@ app.get('/projects/:id/components', checkAuth, function(req, res) {
 	var data = [];
 	for(var i = 0; i < components.length; i++) {
 		if(cids.indexOf(components[i].id) >= 0)
+			data.push(components[i]);
+	}
+	res.json(data);
+});
+
+app.get('/projects/:id/unused_components', checkAuth, function(req, res) {
+	var pid = req.params.id;
+	var cids = [];
+	for(var i = 0; i < project_components.length; i++) {
+		if(project_components[i].pid == pid)
+			cids.push(project_components[i].cid);
+	}
+	var data = [];
+	for(var i = 0; i < components.length; i++) {
+		if(cids.indexOf(components[i].id) < 0)
 			data.push(components[i]);
 	}
 	res.json(data);
