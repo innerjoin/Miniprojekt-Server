@@ -529,6 +529,7 @@ app.post('/project_components/project/:pid/component/:cid', checkAuth, function(
 	for(var i = 0; i < components.length; i++) {
 		if(components[i].id == cid) {
 			result = components[i];
+			result.projectId = pid;
 		}
 	}
 	
