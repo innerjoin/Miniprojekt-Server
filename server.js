@@ -524,6 +524,13 @@ app.post('/project_components/project/:pid/component/:cid', checkAuth, function(
 		var data = {pid: pid, cid: cid};
 		project_components.push(data);
 	}
+	var res = false;
+	
+	for(var i = 0; i < components.length; i++) {
+		if(components[i].id == cid) {
+			res = components[i];
+		}
+	}
 	
     wss.broadcast(JSON.stringify({
         target: 'project_component',
@@ -531,12 +538,6 @@ app.post('/project_components/project/:pid/component/:cid', checkAuth, function(
         data: JSON.stringify(data)
     }));
 	
-	var res = {};
-	for(var i = 0; i < components.length; i++) {
-		if(components[i].id == cid) {
-			res = components[i];
-		}
-	}
 	
     res.json(res);
 });
