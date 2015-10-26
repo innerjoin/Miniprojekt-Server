@@ -519,16 +519,16 @@ app.post('/project_components/project/:pid/component/:cid', checkAuth, function(
 			found = true;
 		} 
 	}
-	
+
 	if(!found){
 		var data = {pid: pid, cid: cid};
 		project_components.push(data);
 	}
-	var res = false;
+	var result = false;
 	
 	for(var i = 0; i < components.length; i++) {
 		if(components[i].id == cid) {
-			res = components[i];
+			result = components[i];
 		}
 	}
 	
@@ -538,8 +538,7 @@ app.post('/project_components/project/:pid/component/:cid', checkAuth, function(
         data: JSON.stringify(data)
     }));
 	
-	
-    res.json(res);
+    res.json(result);
 });
 
 app.get('/project_components/project/:pid/component/:cid/del', checkAuth, function(req, res) {
